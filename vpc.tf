@@ -65,3 +65,50 @@ resource "aws_route_table_association" "private_assoc" {
     route_table_id = aws_route_table.private_route_table.id
   
 }
+
+# create one security group and open only port no 80 to public, 22 to open only from your laptop
+
+resource "aws_security_group" "allow_http_ssh" {
+  name        = "allow_http_ssh"
+  description = "Allow TLS inbound traffic"
+  vpc_id      = aws_vpc.my_vpc.id
+
+  ingress {
+    description      = "HTTPS from internet"
+    from_port        = 80
+    to_port          = 80
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description      = "SSH from My Laptop"
+    from_port        = 22
+    to_port          = 22
+    protocol         = "tcp"
+    cidr_blocks      = ["103.229.129.146/32"]
+  }
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  tags = {
+    Name = "allow_http_ssh"
+  }
+}
+
+resource "aws_instance" "web" {
+  ami = "ami-03265a0778a880afb"
+  instance_type = "t2.micro"
+  subnet_id = aws_subnet.public_subnet.id
+  vpc_security_group_ids = [aws_security_group.allow_http_ssh.id]
+  associate_public_ip_address = true
+  tags = {
+    Name = "Web"
+  }
+}
